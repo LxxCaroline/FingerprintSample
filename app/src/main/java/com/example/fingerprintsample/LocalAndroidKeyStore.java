@@ -36,6 +36,7 @@ public class LocalAndroidKeyStore {
             builder.setUserAuthenticationRequired(true);
             builder.setBlockModes(KeyProperties.BLOCK_MODE_CBC);
             builder.setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7);
+            builder.setUserAuthenticationValidityDurationSeconds(10);
             generator.init(builder.build());
             generator.generateKey();
         } catch (Exception e) {

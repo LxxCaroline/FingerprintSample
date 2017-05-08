@@ -73,18 +73,34 @@ public class FingerprintHelper extends FingerprintManager.AuthenticationCallback
         this.purpose = purpose;
     }
 
+    Cipher mCipher;
     public boolean authenticate() {
-        try {
-            FingerprintManager.CryptoObject object;
-            if (purpose == KeyProperties.PURPOSE_DECRYPT) {
+        FingerprintManager.CryptoObject object = null;
+        if (purpose == KeyProperties.PURPOSE_DECRYPT) {
+            if (mCipher == null) {
                 String IV = mLocalSharedPreference.getData(mLocalSharedPreference.IVKeyName);
                 object = mLocalAndroidKeyStore.getCryptoObject(Cipher.DECRYPT_MODE, Base64.decode(IV, Base64.URL_SAFE));
                 if (object == null) {
                     return false;
                 }
-            } else {
-                object = mLocalAndroidKeyStore.getCryptoObject(Cipher.ENCRYPT_MODE, null);
+                mCipher = object.getCipher();
             }
+            try {
+                String data = mLocalSharedPreference.getData(mLocalSharedPreference.dataKeyName);
+                byte[] decrypted = mCipher.doFinal(Base64.decode(data, Base64.URL_SAFE));
+                callback.onAuthenticationSucceeded(new String(decrypted));
+                return true;
+            } catch (IllegalBlockSizeException e) {
+                e.printStackTrace();
+                callback.showAuthenticationScreen();
+            } catch (BadPaddingException e) {
+                e.printStackTrace();
+            }
+        } else {
+            object = mLocalAndroidKeyStore.getCryptoObject(Cipher.ENCRYPT_MODE, null);
+        }
+
+        try {
             mCancellationSignal = new CancellationSignal();
             manager.authenticate(object, mCancellationSignal, 0, this, null);
             return true;
@@ -165,5 +181,7 @@ public class FingerprintHelper extends FingerprintManager.AuthenticationCallback
         void onAuthenticationSucceeded(String value);
 
         void onAuthenticationFail();
+
+        void showAuthenticationScreen();
     }
 }
