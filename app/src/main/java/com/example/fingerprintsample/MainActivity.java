@@ -1,5 +1,8 @@
 package com.example.fingerprintsample;
 
+import android.app.KeyguardManager;
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.security.keystore.KeyProperties;
 import android.support.v7.app.AppCompatActivity;
@@ -26,6 +29,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         helper.setCallback(this);
         helper.generateKey();
         tv.setText("已生成Key");
+        mKeyguardManager = (KeyguardManager) getSystemService(Context.KEYGUARD_SERVICE);
     }
 
     @Override
@@ -43,6 +47,32 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
         }
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == REQUEST_CODE_CONFIRM_DEVICE_CREDENTIALS) {
+            // Challenge completed, proceed with using cipher
+            if (resultCode == RESULT_OK) {
+                helper.authenticate();
+            } else {
+                // The user canceled or didn’t complete the lock screen
+                // operation. Go to error/cancellation flow.
+            }
+        }
+    }
+
+    public static final int REQUEST_CODE_CONFIRM_DEVICE_CREDENTIALS = 1;
+    private KeyguardManager mKeyguardManager;
+    @Override
+    public void showAuthenticationScreen() {
+        // Create the Confirm Credentials screen. You can customize the title and description. Or
+        // we will provide a generic one for you if you leave it null
+        Intent intent = mKeyguardManager.createConfirmDeviceCredentialIntent(null, null);
+        if (intent != null) {
+            startActivityForResult(intent, REQUEST_CODE_CONFIRM_DEVICE_CREDENTIALS);
+        }
+    }
+
 
     @Override
     public void onAuthenticationSucceeded(String value) {
